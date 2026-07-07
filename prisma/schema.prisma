@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("field") // "field" | "hq"
+  state     String?
+  createdAt DateTime @default(now())
+}
+
+model Preload {
+  id          Int      @id @default(autoincrement())
+  type        String   // "tx" | "agg"
+  period      String?
+  state       String?
+  data        Json
+  uploadedBy  String
+  locked      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TxValidation {
+  id                     String   @id @default(cuid())
+  period                 String
+  periodFy               String?
+  state                  String
+  lga                    String?
+  facilityName           String
+  datimCode              String?
+  patientId              String?
+  pepId                  String?
+  patientHospitalNo      String?
+  assessor               String?
+  assessmentDate         String?
+  recordFound            String?
+  // EMR values (pre-loaded)
+  emrSex                 String?
+  emrAge                 String?
+  emrArtStartDate        String?
+  emrRegimenLine         String?
+  emrRegimen             String?
+  emrPharmacyPickup      String?
+  emrDaysRefill          String?
+  emrTbStatus            String?
+  emrPregnancy           String?
+  // Folder values (entered on-site)
+  folderSex              String?
+  folderAge              String?
+  folderArtStartDate     String?
+  folderRegimenLine      String?
+  folderRegimen          String?
+  folderPharmacyPickup   String?
+  folderDaysRefill       String?
+  folderTbStatus         String?
+  folderPregnancy        String?
+  // Results
+  folderCompleteCount    Int?
+  folderCompletenessPct  Float?
+  matchCount             Int?
+  concurrencePct         Float?
+  emrOnlyCompleteCount   Int?
+  emrOnlyPct             Float?
+  // EMR-only fields
+  pbsEmr                 String?
+  pbsCompleteness        String?
+  recaptureEmr           String?
+  recaptureCompleteness  String?
+  recaptureDate          String?
+  recaptureDateComplete  String?
+  recaptureDateValid     String?
+  remarks                String?
+  mismatchResolutions    Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@unique([period, facilityName, patientId, pepId])
+}
+
+model AggValidation {
+  id             String   @id @default(cuid())
+  period         String
+  periodFy       String?
+  state          String
+  lga            String?
+  facilityName   String
+  datimCode      String?
+  assessor       String?
+  assessmentDate String?
+  indicator      String
+  reported       Float?
+  validated      Float?
+  concurrencePct Float?
+  classification String?
+  mismatchResolution Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Issue {
+  id                String   @id @default(cuid())
+  date              String?
+  period            String?
+  state             String?
+  facility          String?
+  thematicArea      String?
+  gap               String?
+  whyGapExists      String?
+  proposedSolution  String?
+  requiredResources String?
+  responsiblePerson String?
+  assessor          String?
+  expectedResult    String?
+  identifiedDate    String?
+  dueDate           String?
+  status            String?  @default("Pending")
+  statusDate        String?
+  otherComments     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
