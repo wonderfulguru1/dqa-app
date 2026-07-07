@@ -2,9 +2,41 @@
 
 REST-style JSON API served by the Next.js app under `/api`.
 
-**Base URL (local dev):** `http://localhost:3000`
+| | |
+|---|---|
+| **Base URL (local dev)** | `http://localhost:3000` |
+| **Web documentation** | `http://localhost:3000/docs` |
+| **Content type** | `application/json` unless noted otherwise |
+| **Session cookie** | `dqa_session` (HTTP-only JWT, 8-hour expiry) |
 
-**Content type:** `application/json` unless noted otherwise.
+---
+
+## Endpoint index
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/auth/login` | Public | Log in, receive session cookie |
+| `POST` | `/api/auth/logout` | Session | Clear session |
+| `GET` | `/api/auth/me` | Session | Current user profile |
+| `GET` | `/api/field/bootstrap` | Session | Preloads + saved data for field app |
+| `GET` | `/api/field/tx-clients` | Session | Paginated TX clients from preload |
+| `GET` | `/api/tx` | Session | List TX validations |
+| `POST` | `/api/tx` | Session | Upsert one TX validation |
+| `DELETE` | `/api/tx` | HQ | Bulk delete TX validations |
+| `GET` | `/api/agg` | Session | List aggregate validations |
+| `POST` | `/api/agg` | Session | Upsert aggregate validation(s) |
+| `DELETE` | `/api/agg` | HQ | Bulk delete aggregate validations |
+| `GET` | `/api/issues` | Session | List issues |
+| `POST` | `/api/issues` | Session | Create or update an issue |
+| `DELETE` | `/api/issues` | HQ | Delete issue(s) |
+| `GET` | `/api/preloads` | Session | List preload metadata |
+| `POST` | `/api/preloads` | HQ | Upload Excel preload |
+| `GET` | `/api/preloads/:id` | Session | Get preload with full `data` |
+| `PATCH` | `/api/preloads/:id` | HQ | Lock/unlock preload |
+| `DELETE` | `/api/preloads/:id` | HQ | Delete preload |
+| `GET` | `/api/users` | HQ | List users |
+| `POST` | `/api/users` | HQ | Create user |
+| `DELETE` | `/api/users?id=:id` | HQ | Delete user |
 
 ---
 
@@ -15,17 +47,41 @@ All endpoints except `POST /api/auth/login` require a valid session.
 ### How sessions work
 
 1. Call `POST /api/auth/login` with email and password.
-2. The server sets an HTTP-only cookie named `dqa_session` (JWT, 8-hour expiry).
+2. The server sets an HTTP-only cookie named `dqa_session`.
 3. Send that cookie on every subsequent request (`credentials: 'include'` in `fetch`, or `-b cookies.txt` with curl).
 
-| Role   | Access |
-|--------|--------|
-| `field` | Own state’s data; cannot delete bulk data or manage users/preloads |
-| `hq`    | All states; preload upload, user CRUD, bulk deletes |
+JWT payload fields: `id`, `name`, `email`, `role`, `state`.
+
+### Roles
+
+| Role | Access |
+|------|--------|
+| `field` | Data for assigned `state` only; cannot upload preloads, manage users, or bulk-delete |
+| `hq` | All states; preload upload/lock, user CRUD, bulk deletes, HQ dashboards |
 
 ### Field state scoping
 
-On `GET` for `/api/tx`, `/api/agg`, and `/api/issues`, if the user is a field user with a `state` assigned and no `state` query param is passed, results are automatically filtered to that state.
+Field users with a `state` on their account are automatically scoped:
+
+| Endpoint | Scoping behaviour |
+|----------|-------------------|
+| `GET /api/tx` | Filters to `session.state` when no `state` query param |
+| `GET /api/agg` | Same |
+| `GET /api/issues` | Same |
+| `GET /api/field/bootstrap` | Preload rows and saved records filtered to `session.state` |
+| `GET /api/field/tx-clients` | Rows filtered to `session.state` before pagination |
+| `POST /api/tx`, `POST /api/agg` | `state` defaults to `session.state` if omitted in body |
+
+State matching is **case-insensitive** when filtering preload rows.
+
+### Preload locking (field access)
+
+| Role | Active preload selection |
+|------|--------------------------|
+| **HQ** | Latest upload per type (`tx` / `agg`), locked or not |
+| **Field** | Latest **locked** upload per type; unlocked preloads are ignored |
+
+HQ must upload Excel preloads and set `locked: true` via `PATCH /api/preloads/:id` before field teams can see line-list data.
 
 ---
 
@@ -39,12 +95,12 @@ Errors are JSON objects with an `error` string:
 
 | Status | Meaning |
 |--------|---------|
-| `400`  | Missing or invalid request data |
-| `401`  | Not logged in |
-| `403`  | Logged in but insufficient role (usually HQ-only) |
-| `404`  | Resource not found |
-| `409`  | Conflict (e.g. duplicate email) |
-| `500`  | Server error |
+| `400` | Missing or invalid request data |
+| `401` | Not logged in |
+| `403` | Logged in but insufficient role (usually HQ-only) |
+| `404` | Resource not found |
+| `409` | Conflict (e.g. duplicate email) |
+| `500` | Server error |
 
 ---
 
@@ -68,7 +124,7 @@ Log in and receive a session cookie.
 ```json
 {
   "role": "hq",
-  "name": "Admin User"
+  "name": "DQA Admin"
 }
 ```
 
@@ -97,10 +153,22 @@ Return the current user from the session.
 ```json
 {
   "id": 1,
-  "name": "Admin User",
+  "name": "DQA Admin",
   "email": "admin@ecews.org",
   "role": "hq",
   "state": null
+}
+```
+
+Field user example:
+
+```json
+{
+  "id": 3,
+  "name": "Osun",
+  "email": "osun@ecews.org",
+  "role": "field",
+  "state": "Osun"
 }
 ```
 
@@ -110,30 +178,42 @@ Return the current user from the session.
 
 ## Field bootstrap
 
-Used by the field app to load preloads and saved validations in one or few calls.
+Primary endpoint for the field data-entry UI. Loads preloads and/or saved validations.
 
 ### `GET /api/field/bootstrap`
 
 **Query parameters:**
 
-| Param  | Values | Default     | Description |
-|--------|--------|-------------|-------------|
+| Param | Values | Default | Description |
+|-------|--------|---------|-------------|
 | `part` | `preloads`, `saved`, `all` | `preloads` | Which data bundle to return |
 
-**`part=preloads` response** includes:
+#### `part=preloads` response
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `activeTxPreload` | object \| null | Metadata for the active TX preload |
-| `activeAggPreload` | object \| null | Metadata for the active aggregate preload |
-| `preloadLocked` | boolean | Whether preloads are locked for field use |
-| `preloadTx` | array | TX client rows (empty if dataset is large) |
-| `preloadTxLarge` | boolean | `true` when TX rows exceed inline limit; use `/api/field/tx-clients` instead |
-| `txIndex` | object \| null | Facility index when `preloadTxLarge` is true |
-| `preloadAgg` | array | Aggregate preload rows |
-| `aggIndicators` | array | Indicator names from aggregate preload |
+| `activeTxPreload` | object \| null | Metadata for active TX preload (`id`, `type`, `period`, `state`, `uploadedBy`, `locked`, `createdAt`, `updatedAt`) |
+| `activeAggPreload` | object \| null | Metadata for active aggregate preload |
+| `preloadLocked` | boolean | HQ: any preload exists. Field: at least one locked preload exists |
+| `preloadTx` | array | TX client rows; **empty** when `preloadTxLarge` is true |
+| `preloadTxLarge` | boolean | `true` when row count exceeds 1,500; use `/api/field/tx-clients` |
+| `txIndex` | object \| null | Present when `preloadTxLarge` is true (see below) |
+| `preloadAgg` | array | Aggregate facility rows for the user's state |
+| `aggIndicators` | array | Indicator column names from aggregate preload |
 
-**`part=saved` response:**
+**`txIndex` shape** (large TX preloads):
+
+```json
+{
+  "states": ["Osun"],
+  "facilitiesByState": {
+    "Osun": ["Facility A", "Facility B"]
+  },
+  "totalRows": 33540
+}
+```
+
+#### `part=saved` response
 
 ```json
 {
@@ -143,24 +223,28 @@ Used by the field app to load preloads and saved validations in one or few calls
 }
 ```
 
-**`part=all`:** combines both payloads above.
+Saved TX/agg rows use trimmed field selects (report-relevant columns only). Issues return full records.
 
-Field users receive preload and saved data scoped to their assigned state.
+#### `part=all`
+
+Merges both payloads above into one JSON object.
+
+**Field scoping:** `preloadTx`, `preloadAgg`, `txSaved`, `aggSaved`, and `issuesSaved` are filtered to the field user's assigned `state`.
 
 ---
 
 ### `GET /api/field/tx-clients`
 
-Paginated TX client list from the active TX preload. Used when the preload is too large to inline in bootstrap.
+Paginated TX client list from the active locked TX preload. Used when bootstrap sets `preloadTxLarge: true`.
 
 **Query parameters:**
 
-| Param      | Required | Description |
-|------------|----------|-------------|
-| `facility` | Yes      | Facility name (exact match) |
-| `state`    | No       | Further filter by state |
-| `q`        | No       | Search PepID / patient ID (case-insensitive) |
-| `offset`   | No       | Pagination offset (default `0`) |
+| Param | Required | Description |
+|-------|----------|-------------|
+| `facility` | Yes | Facility name (exact match, trimmed) |
+| `state` | No | Further filter by state |
+| `q` | No | Search PepID / patient ID (case-insensitive) |
+| `offset` | No | Pagination offset (default `0`) |
 
 **Success (`200`):**
 
@@ -172,33 +256,35 @@ Paginated TX client list from the active TX preload. Used when the preload is to
 }
 ```
 
-Page size is 500 rows. **Errors:** `400` if `facility` is missing.
+- Page size: **500** rows
+- Returns `{ "clients": [], "total": 0 }` when no active preload exists
+- **Errors:** `400` if `facility` is missing
 
 ---
 
 ## TX validations (client-level)
 
-Natural key for upsert: `period` + `facilityName` + `patientId` + `pepId`.
+**Natural key (upsert):** `period` + `facilityName` + `patientId` + `pepId`
 
 ### `GET /api/tx`
 
 List TX validation records.
 
-**Query parameters:** `period`, `state`, `facilityName` (all optional filters)
+**Query parameters:** `period`, `state`, `facilityName` (all optional)
 
-**Success (`200`):** Array of `TxValidation` records (newest `updatedAt` first).
+**Success (`200`):** Array of `TxValidation` records, newest `updatedAt` first.
 
 ---
 
 ### `POST /api/tx`
 
-Create or update a single TX validation row (upsert by natural key).
+Create or update a single TX validation row.
 
-**Required fields:** `period`, `facilityName`, `state`, `assessor`
+**Required:** `period`, `facilityName`, `state`, `assessor`
 
-**Body:** Any `TxValidation` fields. `state` defaults to the session user’s state if omitted.
+**Body:** Any `TxValidation` field. `state` defaults to `session.state` for field users.
 
-**Success:** `200` (updated) or `201` (created) — full record in response.
+**Success:** `200` (updated) or `201` (created)
 
 **Example:**
 
@@ -206,21 +292,29 @@ Create or update a single TX validation row (upsert by natural key).
 {
   "period": "FY26Q2",
   "periodFy": "FY26",
-  "state": "Oyo",
-  "lga": "Ibadan North",
-  "facilityName": "Ikire Specialist Hospital",
-  "datimCode": "NGA-123",
+  "state": "Osun",
+  "lga": "Osogbo",
+  "facilityName": "State Hospital Osogbo",
+  "datimCode": "NGA-456",
   "patientId": "P001",
   "pepId": "PEP001",
-  "assessor": "Jane Doe",
-  "assessmentDate": "2026-06-15",
+  "assessor": "Field Assessor",
+  "assessmentDate": "2026-07-07",
   "recordFound": "Yes",
   "folderSex": "F",
   "emrSex": "F",
   "folderCompleteCount": 8,
   "matchCount": 7,
   "concurrencePct": 87.5,
-  "mismatchResolutions": {}
+  "mismatchResolutions": {
+    "sex": {
+      "issuesGaps": "Folder missing",
+      "proposedSolution": "Update folder",
+      "responsiblePerson": "Clerk",
+      "dueDate": "2026-07-15"
+    }
+  },
+  "remarks": ""
 }
 ```
 
@@ -230,7 +324,7 @@ Create or update a single TX validation row (upsert by natural key).
 
 **HQ only.** Bulk delete TX validations.
 
-**Query parameters:** `period`, `state` (optional filters; omit both to delete all)
+**Query parameters:** `period`, `state` (optional; omit both to delete all)
 
 **Success (`200`):**
 
@@ -242,7 +336,7 @@ Create or update a single TX validation row (upsert by natural key).
 
 ## Aggregate validations
 
-Natural key for upsert: `period` + `facilityName` + `indicator`.
+**Natural key (upsert):** `period` + `facilityName` + `indicator`
 
 ### `GET /api/agg`
 
@@ -256,7 +350,7 @@ Natural key for upsert: `period` + `facilityName` + `indicator`.
 
 Create or update one or more aggregate rows.
 
-**Body:** Single object or array of objects. Each item needs `period`, `facilityName`, `indicator`, and `assessor`. Items missing required fields are skipped silently.
+**Body:** Single object or array. Each item needs `period`, `facilityName`, `indicator`, and `assessor`. Items missing required fields are **skipped silently**.
 
 **Success (`201`):** Array of saved records.
 
@@ -266,14 +360,22 @@ Create or update one or more aggregate rows.
 [
   {
     "period": "FY26Q2",
-    "state": "Oyo",
-    "facilityName": "Ikire Specialist Hospital",
+    "periodFy": "FY26",
+    "state": "Osun",
+    "lga": "Osogbo",
+    "facilityName": "State Hospital Osogbo",
     "indicator": "TX_CURR",
     "reported": 120,
     "validated": 118,
     "concurrencePct": 98.3,
     "classification": "Concordant",
-    "assessor": "Jane Doe"
+    "assessor": "Field Assessor",
+    "mismatchResolution": {
+      "issuesGaps": "Count mismatch",
+      "proposedSolution": "Reconcile registers",
+      "responsiblePerson": "Data officer",
+      "dueDate": "2026-07-20"
+    }
   }
 ]
 ```
@@ -300,7 +402,7 @@ Create or update one or more aggregate rows.
 
 **Query parameters:** `period`, `state`, `status`
 
-**Success (`200`):** Array of `Issue` records.
+**Success (`200`):** Array of `Issue` records, newest `createdAt` first.
 
 ---
 
@@ -308,11 +410,9 @@ Create or update one or more aggregate rows.
 
 Create or update an issue.
 
-- Include `id` in the body to **update** an existing issue.
-- Omit `id` to **create** a new issue.
-- `assessor` is required.
-
-**Issue fields:**
+- Include `id` in the body to **update**
+- Omit `id` to **create**
+- `assessor` is required
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -326,11 +426,11 @@ Create or update an issue.
 | `proposedSolution` | string | |
 | `requiredResources` | string | |
 | `responsiblePerson` | string | |
-| `assessor` | string | Required |
+| `assessor` | string | **Required** |
 | `expectedResult` | string | |
 | `identifiedDate` | string | |
 | `dueDate` | string | |
-| `status` | string | e.g. `Pending`, `In Progress`, `Resolved`, `Escalated` |
+| `status` | string | `Pending`, `In Progress`, `Resolved`, `Escalated` |
 | `statusDate` | string | |
 | `otherComments` | string | |
 
@@ -344,7 +444,7 @@ Create or update an issue.
 
 **Query parameters:**
 
-- `id` — delete a single issue, or
+- `id` — delete one issue, or
 - `period` + `state` — bulk delete
 
 **Success (`200`):**
@@ -357,11 +457,11 @@ Create or update an issue.
 
 ## Preloads
 
-HQ uploads EMR Excel files that field teams use for validation.
+HQ uploads EMR Excel line lists (`tx`) and DHIS aggregate data (`agg`) before field visits.
 
 ### `GET /api/preloads`
 
-List preload metadata (no row data).
+List preload metadata (no row `data`).
 
 **Query parameters:** `type` — `tx` or `agg`
 
@@ -370,13 +470,13 @@ List preload metadata (no row data).
 ```json
 [
   {
-    "id": 1,
+    "id": 10,
     "type": "tx",
-    "period": "FY26Q2",
+    "period": null,
     "state": null,
-    "uploadedBy": "Admin",
+    "uploadedBy": "DQA Admin",
     "locked": true,
-    "createdAt": "2026-06-01T10:00:00.000Z"
+    "createdAt": "2026-07-03T14:59:55.851Z"
   }
 ]
 ```
@@ -389,14 +489,16 @@ List preload metadata (no row data).
 
 **Content type:** `multipart/form-data`
 
-| Field    | Required | Description |
-|----------|----------|-------------|
-| `file`   | Yes      | `.xlsx` / `.xls` file |
-| `type`   | Yes      | `tx` or `agg` |
-| `period` | No       | DQA period label |
-| `state`  | No       | State scope |
+| Field | Required | Description |
+|-------|----------|-------------|
+| `file` | Yes | `.xlsx` / `.xls` file |
+| `type` | Yes | `tx` or `agg` |
+| `period` | No | DQA period label (e.g. `FY26Q2`) |
+| `state` | No | State scope metadata on the preload record |
 
-**Success (`201`):** Full preload record including parsed `data` JSON.
+Excel is parsed server-side; rows are normalized to canonical field names (`state`, `facilityName`, `dqaPeriod`, etc.).
+
+**Success (`201`):** Full preload record including parsed `data` JSON array.
 
 **Errors:** `400` if file is empty or unparseable.
 
@@ -420,13 +522,15 @@ Get a single preload including full `data` payload.
 { "locked": true }
 ```
 
+Field users only receive data from the latest **locked** preload per type.
+
 **Success (`200`):** Updated preload record.
 
 ---
 
 ### `DELETE /api/preloads/:id`
 
-**HQ only.** Delete a preload.
+**HQ only.**
 
 **Success (`200`):**
 
@@ -450,11 +554,19 @@ List users (passwords never returned).
 [
   {
     "id": 1,
-    "name": "Field User",
-    "email": "field@ecews.org",
-    "role": "field",
-    "state": "Oyo",
+    "name": "DQA Admin",
+    "email": "admin@ecews.org",
+    "role": "hq",
+    "state": null,
     "createdAt": "2026-01-01T00:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "name": "Osun",
+    "email": "osun@ecews.org",
+    "role": "field",
+    "state": "Osun",
+    "createdAt": "2026-07-07T19:40:00.000Z"
   }
 ]
 ```
@@ -463,21 +575,27 @@ List users (passwords never returned).
 
 ### `POST /api/users`
 
-Create a user.
+Create a field or HQ user.
 
 **Body:**
 
 ```json
 {
-  "name": "Field User",
-  "email": "field@ecews.org",
+  "name": "Osun",
+  "email": "osun@ecews.org",
   "password": "secure-password",
   "role": "field",
-  "state": "Oyo"
+  "state": "Osun"
 }
 ```
 
-`role` defaults to `field`. `state` is optional (typically set for field users).
+| Field | Required | Notes |
+|-------|----------|-------|
+| `name` | Yes | Display name |
+| `email` | Yes | Unique login email |
+| `password` | Yes | Stored bcrypt-hashed |
+| `role` | No | `field` (default) or `hq` |
+| `state` | No | **Required for field users** — must match `state` values in preload Excel (e.g. `Osun`, `Delta`) |
 
 **Success (`201`):** User object (no password). **Errors:** `409` if email exists.
 
@@ -495,53 +613,117 @@ Delete a user by ID. Cannot delete your own account.
 
 ---
 
-## Data models (summary)
+## Data models
 
-Full schema: `prisma/schema.prisma`.
+Full Prisma schema: `prisma/schema.prisma`
 
-### TxValidation
+### User
 
-Client-level TX_NEW validation. Key fields: demographics, 9 folder/EMR element pairs, completeness/concurrence metrics, `mismatchResolutions` (JSON), `remarks`.
-
-### AggValidation
-
-Facility-level indicator validation. Key fields: `indicator`, `reported`, `validated`, `concurrencePct`, `classification`, `mismatchResolution` (JSON).
-
-### Issue
-
-Gap tracking and accountability log with `dueDate`, `status`, and responsible person.
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | int | Auto-increment |
+| `name` | string | |
+| `email` | string | Unique |
+| `role` | string | `field` \| `hq` |
+| `state` | string? | Assigned state for field users |
 
 ### Preload
 
-Parsed Excel data stored as JSON. `type` is `tx` or `agg`. Field pages only use `locked: true` preloads.
+| Field | Type | Notes |
+|-------|------|-------|
+| `type` | string | `tx` \| `agg` |
+| `data` | JSON | Array of normalized row objects |
+| `locked` | boolean | Must be `true` for field access |
+| `period`, `state` | string? | Upload metadata |
+
+### TxValidation
+
+Client-level TX_NEW validation: demographics, 9 folder/EMR element pairs, completeness/concurrence metrics, `mismatchResolutions` (JSON map), `remarks`.
+
+Unique: `[period, facilityName, patientId, pepId]`
+
+### AggValidation
+
+Facility indicator validation: `indicator`, `reported`, `validated`, `concurrencePct`, `classification`, `mismatchResolution` (JSON).
+
+### Issue
+
+Gap tracking log with `dueDate`, `status`, `responsiblePerson`, etc.
 
 ---
 
-## Example workflow (curl)
+## Example workflows
+
+### HQ: upload and lock preloads
 
 ```bash
-# 1. Log in and save cookie
+# Log in as HQ
 curl -s -c cookies.txt -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@ecews.org","password":"DQA2025!"}'
 
-# 2. Check session
+# Upload TX line list
+curl -s -b cookies.txt -X POST http://localhost:3000/api/preloads \
+  -F "file=@tx-line-list.xlsx" -F "type=tx" -F "period=FY26Q2"
+
+# Lock preload (use id from upload response)
+curl -s -b cookies.txt -X PATCH http://localhost:3000/api/preloads/10 \
+  -H "Content-Type: application/json" \
+  -d '{"locked":true}'
+```
+
+### Field user (Osun): load data
+
+```bash
+# Log in as Osun field user
+curl -s -c cookies.txt -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"osun@ecews.org","password":"YOUR_PASSWORD"}'
+
+# Session check — state should be "Osun"
 curl -s -b cookies.txt http://localhost:3000/api/auth/me
 
-# 3. Load field bootstrap data
+# Load preloads + saved validations (Osun-scoped)
 curl -s -b cookies.txt "http://localhost:3000/api/field/bootstrap?part=all"
 
-# 4. List TX validations for a period
-curl -s -b cookies.txt "http://localhost:3000/api/tx?period=FY26Q2&state=Oyo"
+# Paginated clients for a facility (large TX preloads)
+curl -s -b cookies.txt \
+  "http://localhost:3000/api/field/tx-clients?facility=State%20Hospital%20Osogbo&offset=0"
 
-# 5. Log out
-curl -s -b cookies.txt -X POST http://localhost:3000/api/auth/logout
+# List saved TX validations
+curl -s -b cookies.txt "http://localhost:3000/api/tx?state=Osun"
 ```
+
+### HQ: create a state field user
+
+```bash
+curl -s -b cookies.txt -X POST http://localhost:3000/api/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Delta",
+    "email": "delta@ecews.org",
+    "password": "secure-password",
+    "role": "field",
+    "state": "Delta"
+  }'
+```
+
+---
+
+## Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret for signing session JWTs |
+| `COOKIE_SECURE` | Set `true` when served over HTTPS |
+| `SEED_EMAIL`, `SEED_PASSWORD` | Optional overrides for `node prisma/seed.js` |
 
 ---
 
 ## Notes
 
-- There is **no separate report export API**. TX_NEW, Aggregate, and Issues reports are built client-side from validation data and exported in the browser.
-- Reports and analytics in the HQ UI read the same `/api/tx`, `/api/agg`, and `/api/issues` endpoints (or Prisma directly on server pages).
-- Session cookie name: `dqa_session`. Set `COOKIE_SECURE=true` in production when served over HTTPS.
+- **Web docs:** Browse `http://localhost:3000/docs` for this reference in the browser (no login required).
+- **No report export API:** TX_NEW, Aggregate, and Issues reports are built client-side and exported in the browser.
+- **HQ dashboards** use the same `/api/tx`, `/api/agg`, `/api/issues` endpoints or Prisma directly on server pages.
+- **Field user with no matching preload data** (e.g. `state: "Delta"` but preloads contain only `Osun`) receives empty arrays from bootstrap — upload and lock preloads that include that state.

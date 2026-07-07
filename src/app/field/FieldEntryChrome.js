@@ -5,10 +5,12 @@ import FieldSectionSkeleton from './FieldSectionSkeleton'
 
 export default function FieldEntryChrome() {
   const {
+    session,
     banner,
     loading,
     preloadTx,
     preloadAgg,
+    preloadLocked,
     txIndex,
     activeTxPreload,
     globalAssessor,
@@ -20,6 +22,9 @@ export default function FieldEntryChrome() {
     states,
     facilities,
   } = useFieldEntry()
+
+  const fieldState = session?.role === 'field' ? String(session?.state || '').trim() : ''
+  const stateLocked = Boolean(fieldState)
 
   const lineListLabel = activeTxPreload
     ? `Line list #${activeTxPreload.id}${activeTxPreload.period ? ` · ${activeTxPreload.period}` : ''}`
@@ -38,7 +43,11 @@ export default function FieldEntryChrome() {
             <div className="note">
               {txRowCount || preloadAgg.length
                 ? `${txRowCount} TX client row(s) from the current line list and ${preloadAgg.length} aggregate facility row(s) from the latest aggregate preload. State and facility filters below are loaded from the uploaded line list.`
-                : 'No line list available yet. Upload and lock an EMR line list via Data Management, or upload a TX file if you are testing as HQ.'}
+                : fieldState
+                  ? preloadLocked
+                    ? `No preload rows are available for ${fieldState} yet. Ask HQ to upload and lock TX and aggregate preloads that include ${fieldState} data.`
+                    : `Preloads exist but are not locked for field use yet. Ask HQ to lock the TX and aggregate preloads in Data Management. Your account is scoped to ${fieldState} only.`
+                  : 'No line list available yet. Upload and lock an EMR line list via Data Management, or upload a TX file if you are testing as HQ.'}
             </div>
           ) : (
             <FieldSectionSkeleton rows={2} />
@@ -54,14 +63,18 @@ export default function FieldEntryChrome() {
               </div>
               <div>
                 <label>Selected state</label>
-                <select
-                  value={globalState}
-                  onChange={e => { setGlobalState(e.target.value); setGlobalFacility('') }}
-                  disabled={!states.length}
-                >
-                  <option value="">{states.length ? 'Select state' : 'No states in line list'}</option>
-                  {states.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                {stateLocked ? (
+                  <input readOnly value={fieldState} title="Your account is limited to this state" />
+                ) : (
+                  <select
+                    value={globalState}
+                    onChange={e => { setGlobalState(e.target.value); setGlobalFacility('') }}
+                    disabled={!states.length}
+                  >
+                    <option value="">{states.length ? 'Select state' : 'No states in line list'}</option>
+                    {states.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                )}
               </div>
               <div>
                 <label>Selected facility</label>

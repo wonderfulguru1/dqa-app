@@ -260,39 +260,52 @@ export function FieldEntryProvider({ session, children }) {
     return () => clearTimeout(timer)
   }, [isOnline, loading, syncNow])
 
+  const fieldState = session?.role === 'field' ? String(session?.state || '').trim() : ''
+
   const states = useMemo(() => {
-    if (txIndex?.states?.length) return txIndex.states
-    return unique(preloadTx.map(r => r.state))
-  }, [preloadTx, txIndex])
+    const fromTx = txIndex?.states?.length
+      ? txIndex.states
+      : unique(preloadTx.map(r => r.state).filter(Boolean))
+    const fromAgg = unique(preloadAgg.map(r => r.state).filter(Boolean))
+    const merged = unique([...fromTx, ...fromAgg])
+    if (fieldState && !merged.includes(fieldState)) return [fieldState, ...merged]
+    return merged
+  }, [preloadTx, preloadAgg, txIndex, fieldState])
 
   const facilities = useMemo(() => {
     if (txIndex?.facilitiesByState) {
       if (!globalState) return []
       return txIndex.facilitiesByState[globalState] || []
     }
-    return unique(
-      preloadTx
-        .filter(r => !globalState || r.state === globalState)
-        .map(r => r.facilityName),
-    )
-  }, [preloadTx, txIndex, globalState])
+    const fromTx = preloadTx
+      .filter(r => !globalState || r.state === globalState)
+      .map(r => r.facilityName)
+    const fromAgg = preloadAgg
+      .filter(r => !globalState || r.state === globalState)
+      .map(r => r.facilityName)
+    return unique([...fromTx, ...fromAgg].filter(Boolean))
+  }, [preloadTx, preloadAgg, txIndex, globalState])
 
   useEffect(() => {
-    if (!preloadTx.length) {
+    if (fieldState) {
+      setGlobalState(fieldState)
+      return
+    }
+    if (!preloadTx.length && !preloadAgg.length) {
       setGlobalState('')
       setGlobalFacility('')
       return
     }
     setGlobalState(prev => (prev && states.includes(prev) ? prev : states[0] || ''))
-  }, [preloadTx, states])
+  }, [preloadTx, preloadAgg, states, fieldState])
 
   useEffect(() => {
-    if (!preloadTx.length) {
+    if (!globalState) {
       setGlobalFacility('')
       return
     }
     setGlobalFacility(prev => (prev && facilities.includes(prev) ? prev : facilities[0] || ''))
-  }, [preloadTx, globalState, facilities])
+  }, [globalState, facilities])
 
   const defaultPeriod = useMemo(
     () => activeTxPreload?.period || preloadTx[0]?.dqaPeriod || activeAggPreload?.period || preloadAgg[0]?.dqaPeriod || '',

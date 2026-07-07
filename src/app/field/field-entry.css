@@ -34,7 +34,19 @@
 .field-entry .hero h1 { margin: 0 0 8px; font-size: 28px; font-weight: 800; }
 .field-entry .hero p { margin: 0; max-width: 1100px; line-height: 1.45; font-size: 0.9rem; opacity: 0.95; }
 .field-entry .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
-.field-entry .hero-right { display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; }
+.field-entry .hero-right { display: flex; align-items: center; gap: 0.65rem; font-size: 0.8rem; flex-wrap: wrap; }
+.field-entry .hero-state-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+  font-size: 0.75rem;
+}
+.field-entry .tx-scorecard-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .field-entry .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
 .field-entry .pill {
   padding: 8px 12px; border-radius: 999px;

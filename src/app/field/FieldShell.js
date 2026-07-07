@@ -34,7 +34,7 @@ function FieldShellInner({ children }) {
           </div>
           <div className="hero-right">
             <span>{session?.name}</span>
-            {session?.state && <span>{session.state} State</span>}
+            {session?.state && <span className="hero-state-badge">{session.state}</span>}
             <button type="button" className="entry-btn ghost" onClick={logout}>Sign out</button>
           </div>
         </div>
