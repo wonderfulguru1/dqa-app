@@ -79,6 +79,10 @@ export default function LoginPage() {
 
         <p style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted)', marginTop: '1.5rem' }}>
           ECEWS Data Quality Assessment System
+          <br />
+          <a href="/docs" style={{ color: 'var(--g1)', marginTop: 6, display: 'inline-block' }}>
+            API documentation
+          </a>
         </p>
       </div>
     </div>

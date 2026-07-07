@@ -1,0 +1,152 @@
+.docs-page {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.docs-topbar {
+  background: var(--g1);
+  color: #fff;
+  padding: 0 1.5rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.docs-topbar-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.docs-topbar a {
+  color: #fff;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.docs-topbar a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.docs-main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.docs-prose h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  color: var(--ink);
+}
+
+.docs-prose h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2rem 0 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--g1);
+}
+
+.docs-prose h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem;
+  color: var(--ink);
+}
+
+.docs-prose p {
+  margin: 0.65rem 0;
+  color: var(--ink);
+  line-height: 1.65;
+}
+
+.docs-prose ul {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+}
+
+.docs-prose li {
+  margin: 0.35rem 0;
+  line-height: 1.55;
+}
+
+.docs-prose hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 1.75rem 0;
+}
+
+.docs-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  background: #e8f5f0;
+  color: var(--g1);
+  padding: 0.12em 0.35em;
+  border-radius: 4px;
+}
+
+.docs-prose pre {
+  background: #0f2e28;
+  color: #e8f5f0;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.docs-prose pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+.docs-prose a {
+  color: var(--g1);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.docs-prose strong {
+  font-weight: 700;
+}
+
+.docs-table-wrap {
+  overflow-x: auto;
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.docs-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.docs-prose th,
+.docs-prose td {
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.docs-prose th {
+  background: #e8f5f0;
+  font-weight: 700;
+  color: var(--g1);
+}
+
+.docs-prose tr:last-child td {
+  border-bottom: none;
+}
