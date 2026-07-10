@@ -10,6 +10,7 @@ import {
   TX_PRELOAD_INLINE_MAX,
   txSavedSelect,
 } from '@/lib/preload-process'
+import { isStateScoped } from '@/lib/roles'
 
 async function loadPreloads(session) {
   const isHq = session.role === 'hq'
@@ -51,7 +52,7 @@ async function loadPreloads(session) {
   let preloadTx = txProcessed.preloadTx
   let preloadAgg = aggProcessed.preloadAgg
 
-  if (session.role === 'field' && session.state) {
+  if (isStateScoped(session.role) && session.state) {
     preloadTx = filterRowsByState(preloadTx, session.state)
     preloadAgg = filterRowsByState(preloadAgg, session.state)
   }
@@ -74,7 +75,7 @@ async function loadPreloads(session) {
 }
 
 async function loadSaved(session) {
-  const stateFilter = session.role === 'field' && session.state ? { state: session.state } : {}
+  const stateFilter = isStateScoped(session.role) && session.state ? { state: session.state } : {}
 
   const [txSaved, aggSaved, issuesSaved] = await Promise.all([
     prisma.txValidation.findMany({ where: stateFilter, orderBy: { updatedAt: 'desc' }, select: txSavedSelect }),

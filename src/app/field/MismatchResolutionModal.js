@@ -91,10 +91,11 @@ export default function MismatchResolutionModal({
               />
             </div>
             <div className="entry-card">
-              <label>Other Comments</label>
-              <textarea
+              <label>Responsible person(s)</label>
+              <input
                 value={form.otherComments}
                 onChange={e => onChange({ ...form, otherComments: e.target.value })}
+                placeholder="e.g. John Doe, Jane Smith"
               />
             </div>
           </div>

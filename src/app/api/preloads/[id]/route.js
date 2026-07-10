@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { canAccessDataManagement } from '@/lib/roles'
 
 export async function GET(request, { params }) {
   const session = await getSession()
@@ -14,7 +15,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 
@@ -31,7 +32,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(request, { params }) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 

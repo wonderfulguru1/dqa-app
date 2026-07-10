@@ -1,5 +1,6 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { canAccessDataManagement } from '@/lib/roles'
 import * as XLSX from 'xlsx'
 import { processAggPreloadData, processTxPreloadData } from '@/lib/preload-process'
 
@@ -27,7 +28,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 

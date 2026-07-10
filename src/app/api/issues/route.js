@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { resolveAssessor } from '@/lib/dqa-entry'
+import { canAccessDataManagement, isStateScoped } from '@/lib/roles'
 
 export async function GET(request) {
   const session = await getSession()
@@ -16,7 +17,7 @@ export async function GET(request) {
   if (state) where.state = state
   if (status) where.status = status
 
-  if (session.role === 'field' && session.state && !state) {
+  if (isStateScoped(session.role) && session.state && !state) {
     where.state = session.state
   }
 
@@ -50,7 +51,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 

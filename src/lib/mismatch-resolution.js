@@ -96,7 +96,7 @@ export function formatMismatchResolutionsForRemarks(resolutions, rows) {
     if (resolution.requiredResources) lines.push(`Required resources: ${resolution.requiredResources}`)
     if (resolution.dueDate) lines.push(`Due date: ${resolution.dueDate}`)
     if (resolution.status) lines.push(`Status: ${resolution.status}`)
-    if (resolution.otherComments) lines.push(`Comments: ${resolution.otherComments}`)
+    if (resolution.otherComments) lines.push(`Responsible person(s): ${resolution.otherComments}`)
     lines.push('')
   }
   return lines.join('\n').trim()

@@ -1,8 +1,9 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Chart, registerables } from 'chart.js'
 import { aggClassificationColor } from '@/lib/dqa-entry'
-import { filterAllOptionLabel } from '@/lib/hq-filters'
+import SearchableSelect from '@/components/SearchableSelect'
+import { filterAllOptionLabel, uniqueSortedFacilities } from '@/lib/hq-filters'
 
 Chart.register(...registerables)
 
@@ -84,12 +85,22 @@ export default function HqAggPage() {
   const states     = [...new Set(records.map(r => r.state).filter(Boolean))].sort()
   const lgas       = [...new Set(records.filter(r => !filters.state || r.state === filters.state).map(r => r.lga).filter(Boolean))].sort()
   const indicators = [...new Set(records.map(r => r.indicator).filter(Boolean))].sort()
+  const facilities = useMemo(
+    () => uniqueSortedFacilities(records, { state: filters.state, lga: filters.lga }),
+    [records, filters.state, filters.lga],
+  )
+
+  useEffect(() => {
+    if (filters.facilityName && !facilities.includes(filters.facilityName)) {
+      setFilters(current => ({ ...current, facilityName: '' }))
+    }
+  }, [facilities, filters.facilityName])
 
   const filtered = records.filter(r =>
     (!filters.period     || r.period    === filters.period) &&
     (!filters.state      || r.state     === filters.state) &&
     (!filters.lga        || r.lga       === filters.lga) &&
-    (!filters.facilityName || (r.facilityName || '').toLowerCase().includes(filters.facilityName.toLowerCase())) &&
+    (!filters.facilityName || r.facilityName === filters.facilityName) &&
     (!filters.indicator  || r.indicator === filters.indicator)
   )
 
@@ -166,7 +177,7 @@ export default function HqAggPage() {
   const trendBase = records.filter(r =>
     (!filters.state     || r.state     === filters.state) &&
     (!filters.lga       || r.lga       === filters.lga) &&
-    (!filters.facilityName || (r.facilityName || '').toLowerCase().includes(filters.facilityName.toLowerCase()))
+    (!filters.facilityName || r.facilityName === filters.facilityName)
   )
   const trendIndOpts = [...new Set(trendBase.map(r => r.indicator).filter(Boolean))].sort()
   const trendRows    = trendIndicator ? trendBase.filter(r => r.indicator === trendIndicator) : trendBase
@@ -245,10 +256,14 @@ export default function HqAggPage() {
             </select>
           </div>
         ))}
-        <div className="form-field">
-          <label>Facility (search)</label>
-          <input value={filters.facilityName} onChange={e => setFilters(f => ({ ...f, facilityName: e.target.value }))} placeholder="Filter…" />
-        </div>
+        <SearchableSelect
+          label="Facility"
+          value={filters.facilityName}
+          onChange={facilityName => setFilters(current => ({ ...current, facilityName }))}
+          options={facilities}
+          allLabel={filterAllOptionLabel('Facility')}
+          placeholder="Search facilities…"
+        />
       </div>
 
       {/* KPI row 1 */}

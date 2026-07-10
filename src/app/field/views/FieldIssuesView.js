@@ -18,6 +18,7 @@ import {
 } from '@/lib/validation-issues'
 import { exportAggValidationsCsv, exportTxValidationsCsv, ISSUE_EXPORT_HEADERS, issueRowToExportRow } from '@/lib/validation-export'
 import { useFieldEntry } from '../FieldEntryContext'
+import SearchableSelect from '@/components/SearchableSelect'
 import SuspenseSection from '../SuspenseSection'
 import FieldSectionSkeleton from '../FieldSectionSkeleton'
 import MismatchResolutionModal from '../MismatchResolutionModal'
@@ -206,13 +207,16 @@ export default function FieldIssuesView() {
         </div>
         <div className="grid3 mt12">
           <div className="entry-card">
-            <label>Facility</label>
-            <select value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
-              <option value="">{facilityOptions.length ? 'Select facility' : 'No saved validations yet'}</option>
-              {facilityOptions.map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              label="Facility"
+              value={facilityFilter}
+              onChange={setFacilityFilter}
+              options={facilityOptions}
+              allLabel={facilityOptions.length ? 'Select facility' : 'No saved validations yet'}
+              placeholder="Search facilities…"
+              disabled={!facilityOptions.length}
+              required
+            />
           </div>
           <div className="entry-card">
             <label>State</label>

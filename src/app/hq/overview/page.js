@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { filterAllOptionLabel } from '@/lib/hq-filters'
+import { useState, useEffect, useMemo } from 'react'
+import SearchableSelect from '@/components/SearchableSelect'
+import { filterAllOptionLabel, uniqueSortedFacilities } from '@/lib/hq-filters'
 
 function aggClass(reported, validated) {
   const r = Number(reported ?? 0), v = Number(validated ?? 0)
@@ -49,13 +50,23 @@ export default function OverviewPage() {
   const periods = [...new Set(allRecords.map(r => r.period).filter(Boolean))].sort()
   const states  = [...new Set(allRecords.map(r => r.state).filter(Boolean))].sort()
   const lgas    = [...new Set(allRecords.filter(r => !filters.state || r.state === filters.state).map(r => r.lga).filter(Boolean))].sort()
+  const facilities = useMemo(
+    () => uniqueSortedFacilities(allRecords, { state: filters.state, lga: filters.lga }),
+    [allRecords, filters.state, filters.lga],
+  )
+
+  useEffect(() => {
+    if (filters.facilityName && !facilities.includes(filters.facilityName)) {
+      setFilters(current => ({ ...current, facilityName: '' }))
+    }
+  }, [facilities, filters.facilityName])
 
   function filt(arr) {
     return arr.filter(r =>
       (!filters.period     || r.period     === filters.period) &&
       (!filters.state      || r.state      === filters.state) &&
       (!filters.lga        || r.lga        === filters.lga) &&
-      (!filters.facilityName || (r.facilityName || '').toLowerCase().includes(filters.facilityName.toLowerCase()))
+      (!filters.facilityName || r.facilityName === filters.facilityName)
     )
   }
 
@@ -119,10 +130,14 @@ export default function OverviewPage() {
             </select>
           </div>
         ))}
-        <div className="form-field">
-          <label>Facility (search)</label>
-          <input value={filters.facilityName} onChange={e => setFilters(f => ({ ...f, facilityName: e.target.value }))} placeholder="Filter by name…" style={{ minWidth: 160 }} />
-        </div>
+        <SearchableSelect
+          label="Facility"
+          value={filters.facilityName}
+          onChange={facilityName => setFilters(current => ({ ...current, facilityName }))}
+          options={facilities}
+          allLabel={filterAllOptionLabel('Facility')}
+          placeholder="Search facilities…"
+        />
       </div>
 
       {/* Top KPI row */}

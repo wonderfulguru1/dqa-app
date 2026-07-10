@@ -1,10 +1,11 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { canAccessDataManagement } from '@/lib/roles'
 import bcrypt from 'bcryptjs'
 
 export async function GET() {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 
@@ -18,7 +19,7 @@ export async function GET() {
 
 export async function POST(request) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 
@@ -44,7 +45,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   const session = await getSession()
-  if (!session || session.role !== 'hq') {
+  if (!session || !canAccessDataManagement(session.role)) {
     return Response.json({ error: 'HQ access required' }, { status: 403 })
   }
 

@@ -45,7 +45,7 @@ export function markdownToHtml(markdown) {
       continue
     }
 
-    const heading = line.match(/^(#{1,3})\s+(.+)$/)
+    const heading = line.match(/^(#{1,6})\s+(.+)$/)
     if (heading) {
       const level = heading[1].length
       parts.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`)
@@ -103,6 +103,7 @@ export function markdownToHtml(markdown) {
       i += 1
     }
     parts.push(`<p>${inlineMarkdown(paraLines.join(' '))}</p>`)
+    if (paraLines.length === 0) i += 1
   }
 
   return parts.join('\n')

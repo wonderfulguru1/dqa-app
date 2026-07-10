@@ -1,6 +1,7 @@
 import {
   collectAggValidationIssues,
   collectTxValidationIssues,
+  formatResponsiblePersons,
 } from './validation-issues'
 
 export const TX_THEMATIC_AREA = 'ART'
@@ -21,7 +22,6 @@ export const ISSUE_EXPORT_HEADERS = [
   'Proposed solution',
   'Expected result',
   'Responsible person(s)',
-  'Other comments',
   'Due Date',
   'Status',
 ]
@@ -49,8 +49,7 @@ export function issueRowToExportRow(issue) {
     'Why gap exists': res.whyGapExists || '',
     'Proposed solution': res.proposedSolution || '',
     'Expected result': res.expectedResult || '',
-    'Responsible person(s)': res.responsiblePerson || res.requiredResources || '',
-    'Other comments': res.otherComments || '',
+    'Responsible person(s)': formatResponsiblePersons(res.otherComments),
     'Due Date': res.dueDate || '',
     'Status': res.status || 'Pending',
   }

@@ -132,3 +132,141 @@ export function applyAggIssueResolution(record, resolution) {
     mismatchResolution: normalizeSingleResolution(resolution),
   }
 }
+
+export const HQ_ISSUE_STATUS_OPTIONS = ['Pending', 'Ongoing', 'Completed', 'In Progress', 'Resolved', 'Escalated']
+
+export function resolutionStatusToHqStatus(status) {
+  const map = {
+    Pending: 'Pending',
+    Ongoing: 'Ongoing',
+    Completed: 'Completed',
+    'In Progress': 'Ongoing',
+    Resolved: 'Completed',
+  }
+  return map[String(status || '').trim()] || String(status || '').trim() || 'Pending'
+}
+
+export function hqStatusToResolutionStatus(status) {
+  const map = {
+    Pending: 'Pending',
+    Ongoing: 'Ongoing',
+    Completed: 'Completed',
+    'In Progress': 'Ongoing',
+    Resolved: 'Completed',
+    Escalated: 'Ongoing',
+  }
+  return map[String(status || '').trim()] || 'Pending'
+}
+
+export function isHqIssueResolved(status) {
+  return status === 'Resolved' || status === 'Completed'
+}
+
+function issueDueFlag(dueDate, status) {
+  if (isHqIssueResolved(status)) return 'Completed'
+  if (!dueDate) return 'Pending'
+  const diff = (new Date(dueDate) - new Date()) / 86400000
+  if (diff < 0) return 'Overdue'
+  if (diff <= 7) return 'Due soon'
+  return 'On track'
+}
+
+export function formatResponsiblePersons(value) {
+  return String(value || '')
+    .split(/[,;\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
+/** Assessor name from the saved TX/Agg validation (entry form field). */
+export function getValidationAssessor(record) {
+  return String(record?.assessor || '').trim()
+}
+
+/** Assessor for an issue row — TX/Agg always use the parent validation assessor. */
+export function getIssueAssessor(issue) {
+  if (issue?.source === 'tx' || issue?.source === 'agg') {
+    return getValidationAssessor(issue?.parentRecord) || String(issue?.assessor || '').trim()
+  }
+  return String(
+    issue?.assessor
+    || issue?._manualRecord?.assessor
+    || '',
+  ).trim()
+}
+
+export function collectAllValidationIssues(txRecords, aggRecords, filters = {}) {
+  return [
+    ...collectTxValidationIssues(txRecords, filters),
+    ...collectAggValidationIssues(aggRecords, filters),
+  ]
+}
+
+/** Total issues per assessor from the same rows shown in the issues register. */
+export function buildAssessorAccountabilityMatrix(issueRows = []) {
+  const byPerson = {}
+
+  function ensure(assessor) {
+    const key = assessor || 'Unassigned'
+    if (!byPerson[key]) {
+      byPerson[key] = { issues: 0, resolved: 0, overdue: 0, dueSoon: 0 }
+    }
+    return key
+  }
+
+  for (const issue of issueRows) {
+    const assessor = getIssueAssessor(issue)
+    const key = ensure(assessor)
+    byPerson[key].issues++
+    const flag = issue._flag || issueDueFlag(issue.dueDate, issue.status)
+    if (isHqIssueResolved(issue.status)) byPerson[key].resolved++
+    if (flag === 'Overdue') byPerson[key].overdue++
+    if (flag === 'Due soon') byPerson[key].dueSoon++
+  }
+
+  return byPerson
+}
+
+export function validationIssueToHqRow(issue) {
+  const res = issue.resolution || {}
+  const assessor = getIssueAssessor({ ...issue, source: issue.source, parentRecord: issue.parentRecord })
+  return {
+    id: issue.id,
+    source: issue.source,
+    validationId: issue.validationId,
+    fieldKey: issue.fieldKey,
+    parentRecord: issue.parentRecord,
+    date: issue.assessmentDate || '',
+    facility: issue.facilityName || '',
+    state: issue.state || '',
+    period: issue.period || '',
+    thematicArea: issue.thematicArea || issue.label || '',
+    gap: res.gap || '',
+    proposedSolution: res.proposedSolution || '',
+    responsiblePerson: formatResponsiblePersons(res.otherComments),
+    dueDate: res.dueDate || '',
+    status: resolutionStatusToHqStatus(res.status),
+    assessor,
+  }
+}
+
+export function manualIssueToHqRow(issue) {
+  const assessor = getIssueAssessor({ assessor: issue.assessor, _manualRecord: issue })
+  return {
+    id: issue.id,
+    source: 'manual',
+    date: issue.date || issue.identifiedDate || '',
+    facility: issue.facility || '',
+    state: issue.state || '',
+    period: issue.period || '',
+    thematicArea: issue.thematicArea || '',
+    gap: issue.gap || '',
+    proposedSolution: issue.proposedSolution || '',
+    responsiblePerson: formatResponsiblePersons(issue.responsiblePerson),
+    dueDate: issue.dueDate || '',
+    status: issue.status || 'Pending',
+    assessor,
+    _manualRecord: issue,
+  }
+}

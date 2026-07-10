@@ -276,11 +276,12 @@ export default function ManagePage() {
                   <label>Role</label>
                   <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))}>
                     <option value="field">Field</option>
+                    <option value="state_admin">State Admin</option>
                     <option value="hq">HQ</option>
                   </select>
                 </div>
                 <div className="form-field">
-                  <label>State (for field users)</label>
+                  <label>State (for field / state admin users)</label>
                   <input value={newUser.state} onChange={e => setNewUser(u => ({ ...u, state: e.target.value }))} placeholder="e.g. Akwa Ibom" />
                 </div>
               </div>
@@ -309,7 +310,7 @@ export default function ManagePage() {
                       <tr key={u.id}>
                         <td style={{ fontWeight: 600 }}>{u.name}</td>
                         <td style={{ fontSize: '0.8rem' }}>{u.email}</td>
-                        <td><span className={`badge badge-${u.role === 'hq' ? 'good' : 'info'}`}>{u.role}</span></td>
+                        <td><span className={`badge badge-${u.role === 'hq' ? 'good' : u.role === 'state_admin' ? 'warn' : 'info'}`}>{u.role}</span></td>
                         <td>{u.state || '—'}</td>
                         <td style={{ fontSize: '0.75rem' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                         <td>

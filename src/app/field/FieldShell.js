@@ -50,7 +50,7 @@ function FieldShellInner({ children }) {
 
       <div className="entry-body">
         <aside className="hq-sidebar entry-sidebar">
-          <div className="hq-sidebar-brand">Field Entry</div>
+          <div className="hq-sidebar-brand">FIELD ENTRY</div>
           <FieldSideNav basePath="/field" />
         </aside>
 

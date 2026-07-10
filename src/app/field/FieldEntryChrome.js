@@ -1,5 +1,7 @@
 'use client'
 import { useFieldEntry } from './FieldEntryContext'
+import { isStateScoped } from '@/lib/roles'
+import SearchableSelect from '@/components/SearchableSelect'
 import OfflineStatusBar from './OfflineStatusBar'
 import FieldSectionSkeleton from './FieldSectionSkeleton'
 
@@ -13,8 +15,6 @@ export default function FieldEntryChrome() {
     preloadLocked,
     txIndex,
     activeTxPreload,
-    globalAssessor,
-    setGlobalAssessor,
     globalState,
     setGlobalState,
     globalFacility,
@@ -23,7 +23,7 @@ export default function FieldEntryChrome() {
     facilities,
   } = useFieldEntry()
 
-  const fieldState = session?.role === 'field' ? String(session?.state || '').trim() : ''
+  const fieldState = isStateScoped(session?.role) ? String(session?.state || '').trim() : ''
   const stateLocked = Boolean(fieldState)
 
   const lineListLabel = activeTxPreload
@@ -56,11 +56,7 @@ export default function FieldEntryChrome() {
         <div className="entry-card">
           <div className="entry-section"><h3>General controls</h3><span className="muted">From uploaded line list</span></div>
           {preloadReady ? (
-            <div className="grid3">
-              <div>
-                <label className="label-required">Assessor</label>
-                <input value={globalAssessor} onChange={e => setGlobalAssessor(e.target.value)} placeholder="Required for all saves" />
-              </div>
+            <div className="grid2">
               <div>
                 <label>Selected state</label>
                 {stateLocked ? (
@@ -77,19 +73,20 @@ export default function FieldEntryChrome() {
                 )}
               </div>
               <div>
-                <label>Selected facility</label>
-                <select
+                <SearchableSelect
+                  label="Selected facility"
                   value={globalFacility}
-                  onChange={e => setGlobalFacility(e.target.value)}
+                  onChange={setGlobalFacility}
+                  options={facilities}
+                  allLabel={facilities.length ? 'Select facility' : globalState ? 'No facilities for state' : 'Select state first'}
+                  placeholder="Search facilities…"
                   disabled={!facilities.length}
-                >
-                  <option value="">{facilities.length ? 'Select facility' : globalState ? 'No facilities for state' : 'Select state first'}</option>
-                  {facilities.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
+                  required
+                />
               </div>
             </div>
           ) : (
-            <FieldSectionSkeleton rows={3} />
+            <FieldSectionSkeleton rows={2} />
           )}
         </div>
       </div>

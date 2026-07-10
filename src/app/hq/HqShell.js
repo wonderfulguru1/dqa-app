@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import FieldSideNav from '../field/FieldSideNav'
 import HqCallout from './HqCallout'
+import { canAccessDataManagement } from '@/lib/roles'
 
 const HQ_NAV = [
   { href: '/hq/overview', label: 'Overview' },
@@ -12,12 +13,13 @@ const HQ_NAV = [
   { href: '/hq/brief', label: 'State Out-Brief' },
   { href: '/hq/cmp', label: 'CMP Tracker' },
   { href: '/hq/issues', label: 'Issues & Accountability' },
-  { href: '/hq/manage', label: 'Data Management' },
+  { href: '/hq/manage', label: 'Data Management', manageOnly: true },
 ]
 
 export default function HqShell({ session, children }) {
   const pathname = usePathname()
   const router = useRouter()
+  const navItems = HQ_NAV.filter(t => !t.manageOnly || canAccessDataManagement(session.role))
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -45,7 +47,7 @@ export default function HqShell({ session, children }) {
         <aside className="hq-sidebar">
           <div className="hq-sidebar-brand">HQ Navigation</div>
           <nav className="hq-sidebar-nav">
-            {HQ_NAV.map(t => (
+            {navItems.map(t => (
               <Link
                 key={t.href}
                 href={t.href}

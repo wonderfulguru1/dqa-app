@@ -1,11 +1,10 @@
 'use client'
-import { Suspense, lazy } from 'react'
+import { Suspense } from 'react'
+import FieldTxView from './views/FieldTxView'
+import FieldAggView from './views/FieldAggView'
+import FieldIssuesView from './views/FieldIssuesView'
+import FieldReviewView from './views/FieldReviewView'
 import FieldRouteFallback from './FieldRouteFallback'
-
-const FieldTxView = lazy(() => import('./views/FieldTxView'))
-const FieldAggView = lazy(() => import('./views/FieldAggView'))
-const FieldIssuesView = lazy(() => import('./views/FieldIssuesView'))
-const FieldReviewView = lazy(() => import('./views/FieldReviewView'))
 
 const VIEW_CONFIG = {
   tx: { Component: FieldTxView, label: 'TX_NEW Entry' },

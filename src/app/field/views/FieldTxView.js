@@ -36,7 +36,7 @@ const EMPTY_EMR_ONLY = { pbs: '', recapture: '', recDate: '', remarks: '' }
 export default function FieldTxView() {
   const {
     show, loadSaved, preloadTx, preloadTxLarge, txIndex, txSaved, loading: bootstrapLoading,
-    globalState, globalFacility, globalAssessor, saveEntry, upsertTxSaved,
+    globalState, globalFacility, saveEntry, upsertTxSaved,
     defaultPeriod, activeTxPreload,
   } = useFieldEntry()
 
@@ -297,7 +297,7 @@ export default function FieldTxView() {
       show('State is missing. Select a state from the line list filters above.', false)
       return
     }
-    const assessor = resolveAssessor(txAssessor, globalAssessor)
+    const assessor = resolveAssessor(txAssessor)
     if (!assessor) {
       show(ASSESSOR_REQUIRED_MSG, false, { useAlert: true })
       return
@@ -505,7 +505,7 @@ export default function FieldTxView() {
         </div>
         <div className="entry-card">
           <label className="label-required">Assessor</label>
-          <input value={txAssessor} onChange={e => setTxAssessor(e.target.value)} placeholder="Or set in General controls above" />
+          <input value={txAssessor} onChange={e => setTxAssessor(e.target.value)} placeholder="Enter assessor name" />
         </div>
         <div className="entry-card entry-card-narrow">
           <label>Record FOUND</label>

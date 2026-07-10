@@ -25,7 +25,7 @@ const disabledFieldStyle = { background: '#f1f5f9' }
 
 export default function FieldAggView() {
   const {
-    show, loadSaved, preloadAgg, aggIndicators, aggSaved, loading: bootstrapLoading, globalState, globalFacility, globalAssessor, saveEntry,
+    show, loadSaved, preloadAgg, aggIndicators, aggSaved, loading: bootstrapLoading, globalState, globalFacility, saveEntry,
     upsertAggSaved,
   } = useFieldEntry()
 
@@ -260,7 +260,7 @@ export default function FieldAggView() {
 
   function requestSaveAgg() {
     if (!selectedAgg) { show('Select a preloaded aggregate facility first.', false); return }
-    const assessor = resolveAssessor(aggAssessor, globalAssessor)
+    const assessor = resolveAssessor(aggAssessor)
     if (!assessor) {
       show(ASSESSOR_REQUIRED_MSG, false, { useAlert: true })
       return
@@ -450,7 +450,7 @@ export default function FieldAggView() {
         </div>
         <div className="entry-card"><label>DQA Period</label><input readOnly value={selectedAgg?.dqaPeriod || ''} /></div>
         <div className="entry-card"><label>Date of Assessment</label><input type="date" value={aggAssessmentDate} onChange={e => setAggAssessmentDate(e.target.value)} /></div>
-        <div className="entry-card"><label className="label-required">Assessor</label><input value={aggAssessor} onChange={e => setAggAssessor(e.target.value)} placeholder="Or set in General controls above" /></div>
+        <div className="entry-card"><label className="label-required">Assessor</label><input value={aggAssessor} onChange={e => setAggAssessor(e.target.value)} placeholder="Enter assessor name" /></div>
       </div>
       <div className="grid3 mt12">
         <div className="entry-card"><label>State</label><input readOnly value={selectedAgg?.state || ''} /></div>

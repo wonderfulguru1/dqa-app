@@ -11,3 +11,4 @@ README.md
 .cursor
 terminals
 *.md
+!docs/API.md

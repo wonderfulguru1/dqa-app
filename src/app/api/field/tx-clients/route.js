@@ -6,6 +6,7 @@ import {
   latestPreload,
   preloadMetaSelect,
 } from '@/lib/preload-process'
+import { isStateScoped } from '@/lib/roles'
 
 const TX_CLIENTS_PAGE_SIZE = 500
 
@@ -47,7 +48,7 @@ export async function GET(request) {
   if (!active) return Response.json({ clients: [], total: 0 })
 
   let rows = active.rows
-  if (session.role === 'field' && session.state) {
+  if (isStateScoped(session.role) && session.state) {
     rows = filterRowsByState(rows, session.state)
   }
   if (state) {

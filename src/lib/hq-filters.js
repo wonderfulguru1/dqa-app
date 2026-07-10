@@ -10,3 +10,12 @@ const FILTER_ALL_LABELS = {
 export function filterAllOptionLabel(label) {
   return FILTER_ALL_LABELS[label] || `All ${String(label || '').toLowerCase()}s`
 }
+
+export function uniqueSortedFacilities(records, { state = '', lga = '', key = 'facilityName' } = {}) {
+  return [...new Set(
+    (records || [])
+      .filter(r => (!state || r.state === state) && (!lga || r.lga === lga))
+      .map(r => String(r[key] || '').trim())
+      .filter(Boolean),
+  )].sort((a, b) => a.localeCompare(b))
+}

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { isHqDashboardRole } from '@/lib/roles'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -22,7 +23,7 @@ export default function LoginPage() {
       })
       const data = await r.json()
       if (!r.ok) { setError(data.error || 'Login failed'); return }
-      router.replace(data.role === 'hq' ? '/hq/overview' : '/field')
+      router.replace(isHqDashboardRole(data.role) ? '/hq/overview' : '/field/tx')
     } catch {
       setError('Network error — please try again')
     } finally {

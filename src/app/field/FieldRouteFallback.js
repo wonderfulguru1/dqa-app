@@ -1,13 +1,23 @@
+import FieldSectionSkeleton from './FieldSectionSkeleton'
+
 export default function FieldRouteFallback({ label = 'Loading page…' }) {
   return (
     <div className="field-suspense-fallback" aria-busy="true" aria-live="polite">
-      <p className="field-suspense-label">{label}</p>
-      <div className="field-skeleton field-skeleton--card" />
-      <div className="field-skeleton field-skeleton--card field-skeleton--short" />
-      <div className="field-skeleton-grid">
-        <div className="field-skeleton field-skeleton--block" />
-        <div className="field-skeleton field-skeleton--block" />
+      <div className="tx-scorecard-bar">
+        <div className="entry-section tx-scorecard-heading">
+          <h3>Validation scorecard</h3>
+          <span className="muted">{label}</span>
+        </div>
+        <div className="grid4 tx-scorecard-grid">
+          {['Folder completeness %', 'Match count', 'Concurrence %', 'EMR-only completeness %'].map(title => (
+            <div key={title} className="entry-card entry-kpi">
+              <div className="k">{title}</div>
+              <div className="field-skeleton field-skeleton--short" style={{ marginTop: 10 }} />
+            </div>
+          ))}
+        </div>
       </div>
+      <FieldSectionSkeleton rows={6} />
     </div>
   )
 }

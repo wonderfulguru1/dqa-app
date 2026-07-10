@@ -53,7 +53,7 @@ export default function IssueFormModal({
                 <input
                   value={issue.assessor || ''}
                   onChange={e => onChange({ ...issue, assessor: e.target.value })}
-                  placeholder="Or set in General controls above"
+                  placeholder="Enter assessor name"
                 />
               </div>
             </div>

@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { unique } from '@/lib/arrays'
+import { isStateScoped } from '@/lib/roles'
 import {
   flushOfflineQueue,
   getOfflineQueue,
@@ -51,7 +52,6 @@ export function FieldEntryProvider({ session, children }) {
   const [savedLoading, setSavedLoading] = useState(false)
   const initDone = useRef(false)
 
-  const [globalAssessor, setGlobalAssessor] = useState(session?.name || '')
   const [globalState, setGlobalState] = useState('')
   const [globalFacility, setGlobalFacility] = useState('')
 
@@ -260,7 +260,7 @@ export function FieldEntryProvider({ session, children }) {
     return () => clearTimeout(timer)
   }, [isOnline, loading, syncNow])
 
-  const fieldState = session?.role === 'field' ? String(session?.state || '').trim() : ''
+  const fieldState = isStateScoped(session?.role) ? String(session?.state || '').trim() : ''
 
   const states = useMemo(() => {
     const fromTx = txIndex?.states?.length
@@ -331,8 +331,6 @@ export function FieldEntryProvider({ session, children }) {
     loadSaved,
     loading,
     savedLoading,
-    globalAssessor,
-    setGlobalAssessor,
     globalState,
     setGlobalState,
     globalFacility,
@@ -352,7 +350,7 @@ export function FieldEntryProvider({ session, children }) {
   }), [
     session, banner, show, preloadTx, preloadAgg, preloadTxLarge, txIndex, aggIndicators,
     txSaved, aggSaved, issuesSaved, preloadLocked, activeTxPreload, activeAggPreload,
-    loadAll, loadSaved, loading, savedLoading, globalAssessor, globalState, globalFacility,
+    loadAll, loadSaved, loading, savedLoading, globalState, globalFacility,
     states, facilities, defaultPeriod, isOnline, pendingCount, pendingEntries, syncing,
     syncNow, saveEntry, upsertTxSaved, upsertAggSaved, upsertIssueSaved,
   ])

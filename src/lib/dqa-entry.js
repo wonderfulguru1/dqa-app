@@ -147,12 +147,12 @@ export function canonicalAggRow(r) {
 
 export function norm(a) { return String(a ?? '').trim().toLowerCase() }
 
-/** Effective assessor from a form field and/or the shared General controls value. */
-export function resolveAssessor(localAssessor, globalAssessor) {
-  return String(localAssessor ?? globalAssessor ?? '').trim()
+/** Assessor name from the entry form field on TX/Agg/Issues. */
+export function resolveAssessor(localAssessor) {
+  return String(localAssessor ?? '').trim()
 }
 
-export const ASSESSOR_REQUIRED_MSG = 'Assessor is required. Enter it on this form or in General controls at the top.'
+export const ASSESSOR_REQUIRED_MSG = 'Assessor is required. Enter it on this form before saving.'
 
 function nullStrField(v) {
   if (v === undefined || v === null || v === '') return null

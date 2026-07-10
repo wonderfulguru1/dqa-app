@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Chart, registerables } from 'chart.js'
-import { filterAllOptionLabel } from '@/lib/hq-filters'
+import SearchableSelect from '@/components/SearchableSelect'
+import { filterAllOptionLabel, uniqueSortedFacilities } from '@/lib/hq-filters'
 
 Chart.register(...registerables)
 
@@ -129,10 +130,16 @@ export default function HqTxPage() {
   const periods = [...new Set(records.map(r => r.period).filter(Boolean))].sort()
   const states  = [...new Set(records.map(r => r.state).filter(Boolean))].sort()
   const lgas    = [...new Set(records.filter(r => !filters.state || r.state === filters.state).map(r => r.lga).filter(Boolean))].sort()
-  const facs    = [...new Set(
-    records.filter(r => (!filters.state || r.state === filters.state) && (!filters.lga || r.lga === filters.lga))
-      .map(r => r.facilityName).filter(Boolean)
-  )].sort()
+  const facs    = useMemo(
+    () => uniqueSortedFacilities(records, { state: filters.state, lga: filters.lga }),
+    [records, filters.state, filters.lga],
+  )
+
+  useEffect(() => {
+    if (filters.facilityName && !facs.includes(filters.facilityName)) {
+      setFilters(current => ({ ...current, facilityName: '' }))
+    }
+  }, [facs, filters.facilityName])
 
   const filtered = records.filter(r =>
     (!filters.period || r.period === filters.period) &&
@@ -273,10 +280,9 @@ export default function HqTxPage() {
 
       <div className="filter-bar">
         {[
-          ['period',       'Period',   periods],
-          ['state',        'State',    states],
-          ['lga',          'LGA',      lgas],
-          ['facilityName', 'Facility', facs],
+          ['period', 'Period', periods],
+          ['state', 'State', states],
+          ['lga', 'LGA', lgas],
         ].map(([key, label, opts]) => (
           <div className="form-field" key={key}>
             <label>{label}</label>
@@ -286,6 +292,14 @@ export default function HqTxPage() {
             </select>
           </div>
         ))}
+        <SearchableSelect
+          label="Facility"
+          value={filters.facilityName}
+          onChange={facilityName => setFilters(current => ({ ...current, facilityName }))}
+          options={facs}
+          allLabel={filterAllOptionLabel('Facility')}
+          placeholder="Search facilities…"
+        />
       </div>
 
       {/* KPI row */}
