@@ -308,10 +308,14 @@ Create or update a single TX validation row.
   "concurrencePct": 87.5,
   "mismatchResolutions": {
     "sex": {
-      "issuesGaps": "Folder missing",
+      "gap": "Folder missing",
+      "whyGapExists": "Record not filed",
       "proposedSolution": "Update folder",
-      "responsiblePerson": "Clerk",
-      "dueDate": "2026-07-15"
+      "expectedResult": "EMR and folder match",
+      "requiredResources": "Clerk time",
+      "dueDate": "2026-07-15",
+      "status": "Pending",
+      "otherComments": ""
     }
   },
   "remarks": ""
@@ -371,10 +375,14 @@ Create or update one or more aggregate rows.
     "classification": "Concordant",
     "assessor": "Field Assessor",
     "mismatchResolution": {
-      "issuesGaps": "Count mismatch",
+      "gap": "Count mismatch",
+      "whyGapExists": "Register not updated",
       "proposedSolution": "Reconcile registers",
-      "responsiblePerson": "Data officer",
-      "dueDate": "2026-07-20"
+      "expectedResult": "Counts align",
+      "requiredResources": "Data officer",
+      "dueDate": "2026-07-20",
+      "status": "Ongoing",
+      "otherComments": ""
     }
   }
 ]
@@ -635,6 +643,23 @@ Full Prisma schema: `prisma/schema.prisma`
 | `data` | JSON | Array of normalized row objects |
 | `locked` | boolean | Must be `true` for field access |
 | `period`, `state` | string? | Upload metadata |
+
+### Mismatch resolution (JSON)
+
+Used in `TxValidation.mismatchResolutions` (map keyed by field name) and `AggValidation.mismatchResolution` (single object per indicator row).
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `gap` | string | **Required** — issues/gaps description |
+| `whyGapExists` | string | |
+| `proposedSolution` | string | |
+| `expectedResult` | string | |
+| `requiredResources` | string | |
+| `dueDate` | string | ISO date `YYYY-MM-DD` |
+| `status` | string | `Pending` (default), `Ongoing`, or `Completed` |
+| `otherComments` | string | |
+
+Returned on `GET /api/tx` and `GET /api/agg`. Accepted on `POST /api/tx` and `POST /api/agg`.
 
 ### TxValidation
 

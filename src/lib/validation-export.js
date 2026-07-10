@@ -23,6 +23,7 @@ export const ISSUE_EXPORT_HEADERS = [
   'Responsible person(s)',
   'Other comments',
   'Due Date',
+  'Status',
 ]
 
 function displayValue(value) {
@@ -51,6 +52,7 @@ export function issueRowToExportRow(issue) {
     'Responsible person(s)': res.responsiblePerson || res.requiredResources || '',
     'Other comments': res.otherComments || '',
     'Due Date': res.dueDate || '',
+    'Status': res.status || 'Pending',
   }
 }
 

@@ -78,7 +78,7 @@ model TxValidation {
   recaptureDateComplete  String?
   recaptureDateValid     String?
   remarks                String?
-  mismatchResolutions    Json?
+  mismatchResolutions    Json?    // per-field: { gap, whyGapExists, proposedSolution, expectedResult, requiredResources, dueDate, status, otherComments }
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -100,7 +100,7 @@ model AggValidation {
   validated      Float?
   concurrencePct Float?
   classification String?
-  mismatchResolution Json?
+  mismatchResolution Json?  // { gap, whyGapExists, proposedSolution, expectedResult, requiredResources, dueDate, status, otherComments }
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

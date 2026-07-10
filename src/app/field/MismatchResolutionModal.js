@@ -1,5 +1,5 @@
 'use client'
-import { EMPTY_MISMATCH_RESOLUTION } from '@/lib/mismatch-resolution'
+import { EMPTY_MISMATCH_RESOLUTION, RESOLUTION_STATUS_OPTIONS } from '@/lib/mismatch-resolution'
 
 export default function MismatchResolutionModal({
   open,
@@ -71,6 +71,17 @@ export default function MismatchResolutionModal({
                 value={form.dueDate || ''}
                 onChange={e => onChange({ ...form, dueDate: e.target.value })}
               />
+            </div>
+            <div className="entry-card">
+              <label>Status</label>
+              <select
+                value={form.status || 'Pending'}
+                onChange={e => onChange({ ...form, status: e.target.value })}
+              >
+                {RESOLUTION_STATUS_OPTIONS.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
             </div>
             <div className="entry-card">
               <label>Required resources</label>

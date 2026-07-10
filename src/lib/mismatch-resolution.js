@@ -1,3 +1,5 @@
+export const RESOLUTION_STATUS_OPTIONS = ['Pending', 'Ongoing', 'Completed']
+
 export const EMPTY_MISMATCH_RESOLUTION = {
   gap: '',
   whyGapExists: '',
@@ -5,11 +7,18 @@ export const EMPTY_MISMATCH_RESOLUTION = {
   expectedResult: '',
   requiredResources: '',
   dueDate: '',
+  status: 'Pending',
   otherComments: '',
 }
 
 const LEGACY_REMARKS_START = '---DQA_MISMATCH_RESOLUTIONS---'
 const LEGACY_REMARKS_END = '---END_DQA_MISMATCH_RESOLUTIONS---'
+
+export function normalizeResolutionStatus(value) {
+  const s = String(value || '').trim()
+  if (s === 'In Progress') return 'Ongoing'
+  return RESOLUTION_STATUS_OPTIONS.includes(s) ? s : 'Pending'
+}
 
 export function isResolutionComplete(resolution) {
   return !!String(resolution?.gap || '').trim()
@@ -34,6 +43,7 @@ export function normalizeSingleResolution(value) {
     expectedResult: String(value.expectedResult || ''),
     requiredResources: String(value.requiredResources || ''),
     dueDate: String(value.dueDate || ''),
+    status: normalizeResolutionStatus(value.status),
     otherComments: String(value.otherComments || ''),
   }
 }
@@ -85,6 +95,7 @@ export function formatMismatchResolutionsForRemarks(resolutions, rows) {
     if (resolution.expectedResult) lines.push(`Expected result: ${resolution.expectedResult}`)
     if (resolution.requiredResources) lines.push(`Required resources: ${resolution.requiredResources}`)
     if (resolution.dueDate) lines.push(`Due date: ${resolution.dueDate}`)
+    if (resolution.status) lines.push(`Status: ${resolution.status}`)
     if (resolution.otherComments) lines.push(`Comments: ${resolution.otherComments}`)
     lines.push('')
   }
